@@ -1,69 +1,10 @@
 services:
-  postgres:
-    image: postgres:15
-    container_name: postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: leaderboard
-    ports:
-      - "5432:5432"
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - leaderboard-network
-
-  redis:
-    image: redis:7
-    container_name: redis
-    ports:
-      - "6379:6379"
-    networks:
-      - leaderboard-network
-
-  seed:
-    build:
-      context: .
-      dockerfile: Dockerfile.seed
-    container_name: seed
-    depends_on:
-      - postgres
-      - redis
-    env_file:
-      - .env
-    networks:
-      - leaderboard-network
-
-  api:
+  leaderboard-app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: leaderboard-api
-    depends_on:
-      - postgres
-      - redis
-      - seed
+    container_name: leaderboard-app
     ports:
       - "8080:8080"
     env_file:
       - .env
-    networks:
-      - leaderboard-network
-
-  worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.worker
-    container_name: leaderboard-worker
-    depends_on:
-      - redis
-      - postgres
-      - seed
-    env_file:
-      - .env
-    networks:
-      - leaderboard-network
-
-networks:
-  leaderboard-network:
-    driver: bridge

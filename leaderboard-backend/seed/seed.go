@@ -18,6 +18,7 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
+	// Number of users to seed
 	numUsers := 10000
 	if v := os.Getenv("SEED_USERS"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
@@ -25,9 +26,10 @@ func main() {
 		}
 	}
 
+	// Postgres connection
 	dsn := os.Getenv("POSTGRES_DSN")
 	if dsn == "" {
-		dsn = "postgres://postgres:postgres@postgres:5432/leaderboard?sslmode=disable"
+		dsn = "postgres://postgres:@localhost:5432/leaderboard?sslmode=disable"
 	}
 
 	db, err := sql.Open("postgres", dsn)
@@ -40,6 +42,24 @@ func main() {
 		log.Fatal("Cannot reach Postgres:", err)
 	}
 
+	// Create table if it doesn't exist
+	createTable := `
+	CREATE TABLE IF NOT EXISTS users (
+		id UUID PRIMARY KEY,
+		username TEXT UNIQUE NOT NULL,
+		rating INT NOT NULL,
+		created_at TIMESTAMP NOT NULL DEFAULT NOW()
+	);
+	CREATE INDEX IF NOT EXISTS idx_users_username_pattern
+	ON users (username text_pattern_ops);
+	`
+	_, err = db.Exec(createTable)
+	if err != nil {
+		log.Fatal("Failed to create table:", err)
+	}
+	log.Println("Users table ready.")
+
+	// Seed users
 	log.Println("Seeding database with users...")
 
 	stmt, _ := db.Prepare(`
@@ -50,7 +70,6 @@ func main() {
 	defer stmt.Close()
 
 	popularRatings := []int{1500, 2000, 2500, 3000, 3500, 4000, 4500}
-
 	usedUsernames := make(map[string]bool)
 
 	for i := 0; i < numUsers; i++ {
@@ -78,6 +97,7 @@ func main() {
 
 	log.Println("Seeding complete. Rebuilding Redis leaderboard...")
 
+	// Connect to Redis
 	rdb := redis.NewClient(&redis.Options{
 		Addr: os.Getenv("REDIS_ADDR"),
 	})
@@ -115,29 +135,10 @@ func randomUsername() string {
 		"alex", "sam", "jordan", "taylor", "morgan", "chris", "jamie",
 		"olivia", "noah", "emma", "liam", "ava", "mia", "lucas", "milo",
 		"sophia", "isabella", "ethan", "logan", "harper", "amelia", "ella",
-		"jack", "leo", "lily", "hannah", "sebastian", "nora", "finn", "ariel",
-		"ryan", "zoe", "carter", "audrey", "owen", "elijah", "claire", "ivy",
-		"jackson", "grace", "dylan", "scarlett", "aiden", "lucia", "luna",
-		"ryder", "eli", "caden", "stella", "sawyer", "naomi", "nathan", "bella",
-		"emma", "mason", "eva", "hunter", "leah", "joseph", "madeline", "alexander",
-		"amelie", "james", "sophia", "sebby", "harley", "freya", "kai", "violet",
-		"tobias", "clara", "simon", "lena", "felix", "ivy", "hugo", "maya",
-		"lucien", "ella", "emmett", "amelia", "theo", "zoey", "matthew", "sienna",
-		"ryland", "juliet", "nolan", "ariana", "asher", "lila", "grayson", "phoebe",
-		"caius", "nina", "evan", "dahlia", "brandon", "celeste", "jude", "marie",
 	}
-
 	adjectives := []string{
 		"fast", "cool", "brave", "smart", "lucky", "silent", "wild",
 		"happy", "fierce", "chill", "mighty", "sly", "bold", "swift",
-		"gentle", "sharp", "keen", "fiery", "graceful", "mystic", "bright",
-		"noble", "calm", "stormy", "witty", "vivid", "strong", "quick",
-		"proud", "steady", "crazy", "lively", "savage", "glorious", "daring",
-		"clever", "brilliant", "radiant", "fearless", "spirited", "vigilant",
-		"merry", "stubborn", "humble", "cheerful", "fabled", "legendary", "majestic",
-		"radiant", "fiery", "gritty", "tenacious", "dashing", "shiny", "swift-footed",
-		"stealthy", "valiant", "dauntless", "agile", "keen-eyed", "resolute", "bold-hearted",
-		"noble-minded", "fierce-hearted", "prudent", "wily", "sneaky", "fearsome", "glimmering",
 	}
 
 	name := firstNames[rand.Intn(len(firstNames))]
