@@ -1,7 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { LeaderboardUser } from "./types";
 
-const API_BASE = "https://matiks-assignment-production.up.railway.app`";
+const API_BASE = "https://matiks-assignment-production.up.railway.app";
 
 export const getLeaderboard = async (
   limit: number = 100,
