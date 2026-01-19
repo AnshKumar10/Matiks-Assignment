@@ -14,7 +14,7 @@ func NewRouter(lbService *leaderboard.Service) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:8081"},
+		AllowedOrigins:   []string{"http://localhost:8081", "https://matiks-assignment.vercel.app"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
