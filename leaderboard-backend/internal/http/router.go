@@ -28,6 +28,8 @@ func NewRouter(lbService *leaderboard.Service) http.Handler {
 
 	lbHandler := handlers.NewLeaderboardHandler(lbService)
 
+	r.Post("/random-rating", lbHandler.UpdateRandomUserRating)
+
 	r.Route("/leaderboard", func(r chi.Router) {
 		r.Get("/", lbHandler.GetTop)          // Top 10
 		r.Get("/nearby", lbHandler.GetNearby) // ±4 users

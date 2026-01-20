@@ -88,7 +88,19 @@ func (s *Service) GetUserRank(ctx context.Context, userID string) (*LeaderboardE
 	}, nil
 }
 
-// SearchUsers searches users by username
+
 func (s *Service) SearchUsers(ctx context.Context, query string) ([]LeaderboardEntry, error) {
 	return s.repo.SearchUsers(ctx, query)
 }
+
+
+
+func (s *Service) GetAllUserIDs(ctx context.Context) ([]string, error) {
+    return s.repo.GetAllUserIDs(ctx)
+}
+
+func (s *Service) UpdateUserRating(ctx context.Context, userID string, newRating int) error {
+	return s.repo.UpdateUserRating(ctx, userID, newRating)
+}
+
+

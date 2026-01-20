@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/AnshKumar10/Matiks-Assignment/internal/leaderboard"
 )
@@ -139,4 +141,50 @@ func (h *LeaderboardHandler) Search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, response)
+}
+
+func (h *LeaderboardHandler) UpdateRandomUserRating(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Get all user IDs
+	userIDs, err := h.service.GetAllUserIDs(ctx)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to get users")
+		return
+	}
+
+	if len(userIDs) == 0 {
+		respondError(w, http.StatusNotFound, "no users found")
+		return
+	}
+
+	// Shuffle users to pick random ones
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(userIDs), func(i, j int) {
+		userIDs[i], userIDs[j] = userIDs[j], userIDs[i]
+	})
+
+	// Limit to 5000 users
+	limit := 5000
+	if len(userIDs) < limit {
+		limit = len(userIDs)
+	}
+
+	targetUsers := userIDs[:limit]
+
+	// Update ratings for the selected users
+	for _, userID := range targetUsers {
+		// Generate a random score between 100 and 5000
+		newScore := rand.Intn(4901) + 100
+		if err := h.service.UpdateUserRating(ctx, userID, newScore); err != nil {
+			// Log error but continue with others?
+			// For simplicity, we just log/continue or return error.
+			// Let's just log (fmt.Println since we don't have logger here easily) or ignore.
+			continue
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": "Updated ratings for " + strconv.Itoa(limit) + " users",
+	})
 }

@@ -11,7 +11,6 @@ COPY . .
 
 # Build binaries
 RUN CGO_ENABLED=0 GOOS=linux go build -o api ./cmd/api
-RUN CGO_ENABLED=0 GOOS=linux go build -o worker ./cmd/worker
 RUN CGO_ENABLED=0 GOOS=linux go build -o seed ./seed
 
 # Stage 2: Final lightweight image
@@ -28,7 +27,6 @@ RUN mkdir -p /var/lib/postgresql/data /run/postgresql \
 
 # Copy Go binaries
 COPY --from=build /app/api .
-COPY --from=build /app/worker .
 COPY --from=build /app/seed .
 
 # Copy start script

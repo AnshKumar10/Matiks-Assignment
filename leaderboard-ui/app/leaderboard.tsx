@@ -1,7 +1,15 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ScrollView, Text, StyleSheet, TextInput, View, RefreshControl } from "react-native";
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import {
+  Text,
+  StyleSheet,
+  TextInput,
+  View,
+  RefreshControl,
+  TouchableOpacity,
+  FlatList,
+} from "react-native";
 import { Search } from "lucide-react";
-import { getLeaderboard, searchUsers } from "./api";
+import { getLeaderboard, searchUsers, updateRandomRating } from "./api";
 import { debounce } from "./utils";
 import { LeaderboardUser } from "./types";
 
@@ -10,19 +18,22 @@ export default function LeaderboardScreen() {
   const [searchResults, setSearchResults] = useState<LeaderboardUser[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const flatListRef = useRef<FlatList>(null);
 
-  const fetchLeaderboard = async (): Promise<void> => {
-    setRefreshing(true);
-    const data = await getLeaderboard();
-    setLeaderboard(data);
-    setRefreshing(false);
+  const loadLeaderboard = async () => {
+    try {
+      setRefreshing(true);
+      const data = await getLeaderboard();
+      setLeaderboard(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   useEffect(() => {
-    fetchLeaderboard();
-    const interval = setInterval(fetchLeaderboard, 15000);
-
-    return () => clearInterval(interval);
+    loadLeaderboard();
   }, []);
 
   const handleSearch = useMemo(
@@ -43,14 +54,30 @@ export default function LeaderboardScreen() {
     handleSearch(text);
   };
 
+  const handleUpdateRandom = async () => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    await updateRandomRating();
+    setSearchResults([]);
+    setSearchQuery("");
+    loadLeaderboard();
+  };
+
   const displayData = searchQuery.length > 0 ? searchResults : leaderboard;
 
   return (
     <View style={styles.page}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>LEADERBOARD</Text>
-          <Text style={styles.subtitle}>Correctness, Scale and Clarity</Text>
+          <View>
+            <Text style={styles.title}>LEADERBOARD</Text>
+            <Text style={styles.subtitle}>Correctness, Scale and Clarity</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.randomButton}
+            onPress={handleUpdateRandom}
+          >
+            <Text style={styles.randomButtonText}>Simulate Update Rating</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.searchWrapper}>
@@ -66,15 +93,20 @@ export default function LeaderboardScreen() {
           />
         </View>
 
-        <ScrollView
+        <FlatList
+          ref={flatListRef}
           style={styles.tableScroll}
           contentContainerStyle={styles.table}
+          data={displayData}
+          keyExtractor={(item: LeaderboardUser) => item.user_id}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={fetchLeaderboard} tintColor="#00ff41" />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={loadLeaderboard}
+            />
           }
-        >
-          {displayData.map((item) => (
-            <View key={item.user_id} style={styles.row}>
+          renderItem={({ item }) => (
+            <View style={styles.row}>
               <Text
                 style={[
                   styles.rank,
@@ -97,14 +129,15 @@ export default function LeaderboardScreen() {
                 <Text style={styles.rating}>{item.rating}</Text>
               </View>
             </View>
-          ))}
-
-          {displayData.length === 0 && (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>No players found</Text>
-            </View>
           )}
-        </ScrollView>
+          ListEmptyComponent={
+            !refreshing ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>No players found</Text>
+              </View>
+            ) : null
+          }
+        />
       </View>
     </View>
   );
@@ -125,7 +158,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 16,
   },
   title: {
@@ -142,9 +177,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
   },
+  randomButton: {
+    backgroundColor: "#00ff41",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 20,
+    alignSelf: "center",
+  },
+  randomButtonText: {
+    color: "#000",
+    fontWeight: "700",
+    fontFamily: "monospace",
+  },
   searchWrapper: {
     marginBottom: 16,
-    maxWidth: 400,
     alignSelf: "center",
     position: "relative",
     width: "100%",

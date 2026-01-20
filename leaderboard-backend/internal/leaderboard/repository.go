@@ -312,3 +312,13 @@ func (r *Repository) GetDenseRanks(ctx context.Context, entries []LeaderboardEnt
 
 	return out, nil
 }
+
+func (r *Repository) GetAllUserIDs(ctx context.Context) ([]string, error) {
+
+	
+    userIDs, err := r.rdb.ZRange(ctx, GlobalLeaderboardKey, 0, -1).Result()
+    if err != nil {
+        return nil, err
+    }
+    return userIDs, nil
+}

@@ -41,8 +41,6 @@ echo "Seeding the leaderboard database..."
 # Start API and Worker
 echo "Starting API..."
 ./api &
-echo "Starting Worker..."
-./worker &
 
 # Keep container alive
 wait -n
